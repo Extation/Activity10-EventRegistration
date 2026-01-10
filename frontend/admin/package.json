@@ -4,10 +4,13 @@
   "description": "Admin dashboard for event registration system",
   "private": true,
   "dependencies": {
+    "@types/react-router-dom": "^5.3.3",
+    "ajv": "^8.17.1",
+    "axios": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "axios": "^1.6.2",
-    "react-icons": "^4.12.0"
+    "react-icons": "^4.12.0",
+    "react-router-dom": "^6.30.3"
   },
   "scripts": {
     "start": "react-scripts start",
@@ -16,16 +19,26 @@
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
-    "extends": ["react-app"]
+    "extends": [
+      "react-app"
+    ]
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version", "last 1 safari version"]
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
   },
   "devDependencies": {
-    "react-scripts": "5.0.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "typescript": "^5.3.3"
+    "react-scripts": "5.0.1",
+    "typescript": "^4.9.5"
   }
 }

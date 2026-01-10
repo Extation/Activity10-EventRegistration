@@ -2,6 +2,7 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Ticket } from './ticket.entity';
+import { EmailService } from '../email/email.service';
 import * as QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -10,6 +11,7 @@ export class TicketService {
   constructor(
     @InjectRepository(Ticket)
     private readonly ticketRepository: Repository<Ticket>,
+    private readonly emailService: EmailService,
   ) {}
 
   async generateTicket(
@@ -77,7 +79,40 @@ export class TicketService {
     ticket.verifiedAt = new Date();
     ticket.status = 'checked-in';
 
-    return this.ticketRepository.save(ticket);
+    const savedTicket = await this.ticketRepository.save(ticket);
+
+    // Send check-in confirmation email
+    try {
+      // Get registration details to get user email
+      const ticketWithRelations = await this.ticketRepository.findOne({
+        where: { id: savedTicket.id },
+        relations: ['event'],
+      });
+
+      if (ticketWithRelations && ticketWithRelations.event) {
+        // Get registration to find user email
+        const registration = await this.ticketRepository.manager
+          .getRepository('Registration')
+          .findOne({ where: { id: ticketWithRelations.registrationId } });
+
+        if (registration) {
+          await this.emailService.sendCheckInConfirmation(
+            registration.userEmail,
+            registration.userName,
+            ticketWithRelations.event.title,
+            ticketWithRelations.event.date,
+            ticketWithRelations.event.time,
+            ticketWithRelations.event.location,
+            savedTicket.verifiedAt.toLocaleString(),
+          );
+        }
+      }
+    } catch (emailError) {
+      console.error('Failed to send check-in email:', emailError);
+      // Don't fail the verification if email fails
+    }
+
+    return savedTicket;
   }
 
   async getTicketStatus(uuid: string): Promise<Ticket> {

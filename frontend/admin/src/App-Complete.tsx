@@ -74,8 +74,9 @@ function App() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showLogin, setShowLogin] = useState(true);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
-  const [authError, setAuthError] = useState('');
+  const [registerForm, setRegisterForm] = useState({ email: '', password: '', name: '' });
 
   // Main app state
   const [activeTab, setActiveTab] = useState<'events' | 'users' | 'tickets'>('events');
@@ -108,49 +109,15 @@ function App() {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  
-  // Notification state
-  const [notification, setNotification] = useState<{
-    message: string;
-    type: 'success' | 'error' | 'info';
-    show: boolean;
-  }>({ message: '', type: 'info', show: false });
-  
-  const [confirmDialog, setConfirmDialog] = useState<{
-    message: string;
-    show: boolean;
-    onConfirm: () => void;
-  }>({ message: '', show: false, onConfirm: () => {} });
-
-  // Notification helper functions
-  const showNotification = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setNotification({ message, type, show: true });
-    setTimeout(() => {
-      setNotification(prev => ({ ...prev, show: false }));
-    }, 3000);
-  };
-  
-  const showConfirm = (message: string, onConfirm: () => void) => {
-    setConfirmDialog({ message, show: true, onConfirm });
-  };
 
   // Check authentication on mount
   useEffect(() => {
     const token = localStorage.getItem('token');
     const userStr = localStorage.getItem('user');
     if (token && userStr) {
-      const user = JSON.parse(userStr);
-      // Verify user is admin
-      if (user.role === 'admin') {
-        setIsAuthenticated(true);
-        setCurrentUser(user);
-        loadInitialData();
-      } else {
-        // Non-admin user, clear storage
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setAuthError('🔐 Access Denied: Administrator privileges are required to access this dashboard.');
-      }
+      setIsAuthenticated(true);
+      setCurrentUser(JSON.parse(userStr));
+      loadInitialData();
     }
   }, []);
 
@@ -161,15 +128,8 @@ function App() {
   // Authentication functions
   const handleLogin = async () => {
     try {
-      setAuthError('');
       const response = await api.post('/auth/login', loginForm);
       const { access_token, user } = response.data;
-      
-      // Verify user has admin role
-      if (user.role !== 'admin') {
-        setAuthError('🔐 Access Denied: This dashboard is restricted to administrators only.');
-        return;
-      }
       
       localStorage.setItem('token', access_token);
       localStorage.setItem('user', JSON.stringify(user));
@@ -180,7 +140,18 @@ function App() {
       
       await loadInitialData();
     } catch (error: any) {
-      setAuthError(error.response?.data?.message || '❌ Authentication failed. Please verify your credentials.');
+      alert(error.response?.data?.message || '❌ Authentication failed. Please verify your credentials.');
+    }
+  };
+
+  const handleRegister = async () => {
+    try {
+      await api.post('/auth/register', registerForm);
+      alert('Registration successful! Please login.');
+      setShowLogin(true);
+      setRegisterForm({ email: '', password: '', name: '' });
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Registration failed');
     }
   };
 
@@ -212,7 +183,7 @@ function App() {
       const response = await api.get('/users');
       setUsers(response.data);
     } catch (error) {
-      console.error('Failed to load users', error);
+      console.error('❌ [Admin] Failed to load users:', error);
     }
   };
 
@@ -233,7 +204,7 @@ function App() {
       
       setMyTickets(tickets);
     } catch (error) {
-      console.error('Failed to load tickets', error);
+      console.error('❌ [Admin] Failed to load tickets:', error);
     }
   };
 
@@ -243,14 +214,14 @@ function App() {
       const response = await api.get(`/registrations/events/${event.id}`);
       setRegistrations(response.data);
     } catch (error) {
-      showNotification('Failed to load event details', 'error');
+      alert('❌ Unable to load event details. Please try again.');
     }
   };
 
   // Event management functions
   const handleCreateEvent = async () => {
     if (!eventForm.title || !eventForm.date) {
-      showNotification('Please fill in required fields', 'error');
+      alert('Please fill in required fields');
       return;
     }
 
@@ -267,36 +238,28 @@ function App() {
       });
       setIsCreating(false);
       await loadEvents();
-      showNotification('Event created successfully', 'success');
     } catch (error) {
-      showNotification('Failed to create event', 'error');
+      alert('❌ Unable to create event. Please check your input and try again.');
     }
   };
 
   const handleDeleteEvent = async (id: number) => {
-    showConfirm('Are you sure you want to delete this event?', async () => {
+    if (window.confirm('Are you sure you want to delete this event?')) {
       try {
         await api.delete(`/events/${id}`);
         await loadEvents();
         setSelectedEvent(null);
         setRegistrations([]);
-        showNotification('Event deleted successfully', 'success');
-      } catch (error: any) {
-        const errorMsg = error.response?.data?.message || 'Failed to delete event';
-        if (error.response?.status === 403) {
-          showNotification('Permission denied: Only admins can delete events', 'error');
-        } else {
-          showNotification(errorMsg, 'error');
-        }
-        console.error('Delete error:', error);
+      } catch (error) {
+        alert('❌ Unable to delete event. Please try again.');
       }
-    });
+    }
   };
 
   // User management functions
   const handleCreateUser = async () => {
     if (!userForm.email || !userForm.password || !userForm.name) {
-      showNotification('Please fill in all fields', 'error');
+      alert('⚠️ Please fill in all required fields (name, email, and password).');
       return;
     }
 
@@ -305,38 +268,38 @@ function App() {
       setUserForm({ email: '', password: '', name: '', role: 'attendee' });
       setIsEditingUser(false);
       await loadUsers();
-      showNotification('User created successfully', 'success');
+      alert('✅ User account created successfully!');
     } catch (error: any) {
-      showNotification(error.response?.data?.message || 'Failed to create user', 'error');
+      alert(error.response?.data?.message || '❌ Unable to create user. Please check your input and try again.');
     }
   };
 
   const handleUpdateUserRole = async (userId: number, newRole: string) => {
     try {
-      await api.put(`/users/${userId}`, { role: newRole });
+      await api.patch(`/users/${userId}/role`, { role: newRole });
       await loadUsers();
-      showNotification('User role updated successfully', 'success');
-    } catch (error: any) {
-      showNotification(error.response?.data?.message || 'Failed to update user role', 'error');
+      alert('✅ User role updated successfully!');
+    } catch (error) {
+      alert('❌ Unable to update user role. Please try again.');
     }
   };
 
   const handleDeleteUser = async (userId: number) => {
-    showConfirm('Are you sure you want to delete this user?', async () => {
+    if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await api.delete(`/users/${userId}`);
         await loadUsers();
-        showNotification('User deleted successfully', 'success');
+        alert('✅ User deleted successfully!');
       } catch (error) {
-        showNotification('Failed to delete user', 'error');
+        alert('❌ Unable to delete user. Please try again.');
       }
-    });
+    }
   };
 
   // Export function
   const exportRegistrations = () => {
     if (!selectedEvent || registrations.length === 0) {
-      showNotification('No registrations to export', 'error');
+      alert('No registrations to export');
       return;
     }
 
@@ -379,55 +342,75 @@ function App() {
     user.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Login UI (Admin Only)
+  // Login/Register UI
   if (!isAuthenticated) {
     return (
       <div className="auth-container">
         <div className="auth-box">
           <h1>Admin Dashboard</h1>
-          <p className="admin-notice">Administrator Access Only</p>
-          
-          <div className="auth-form">
-            <h2>Admin Login</h2>
-            
-            {authError && (
-              <div className="error-message">
-                <strong>⚠️ {authError}</strong>
-              </div>
-            )}
-            
-            <input
-              type="email"
-              placeholder="Admin Email"
-              value={loginForm.email}
-              onChange={e => {
-                setLoginForm({ ...loginForm, email: e.target.value });
-                setAuthError('');
-              }}
-              onKeyPress={e => e.key === 'Enter' && handleLogin()}
-            />
-            <input
-              type="password"
-              placeholder="Admin Password"
-              value={loginForm.password}
-              onChange={e => {
-                setLoginForm({ ...loginForm, password: e.target.value });
-                setAuthError('');
-              }}
-              onKeyPress={e => e.key === 'Enter' && handleLogin()}
-            />
-            <button onClick={handleLogin} className="btn-primary">
-              Login as Admin
+          <div className="auth-tabs">
+            <button
+              className={showLogin ? 'active' : ''}
+              onClick={() => setShowLogin(true)}
+            >
+              Login
             </button>
-            <p className="auth-hint">
-              🔑 Admin Accounts:<br/>
-              miguelito@admin.com / AdminAko01101!<br/>
-              systemadmin@admin.com / AdminSecure2024!
-            </p>
-            <p className="auth-warning">
-              ⚠️ Only users with administrator privileges can access this dashboard.
-            </p>
+            <button
+              className={!showLogin ? 'active' : ''}
+              onClick={() => setShowLogin(false)}
+            >
+              Register
+            </button>
           </div>
+
+          {showLogin ? (
+            <div className="auth-form">
+              <h2>Login</h2>
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginForm.email}
+                onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+              />
+              <button onClick={handleLogin} className="btn-primary">
+                Login
+              </button>
+              <p className="auth-hint">
+                Test Account: admin@test.com / admin123
+              </p>
+            </div>
+          ) : (
+            <div className="auth-form">
+              <h2>Register</h2>
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={registerForm.name}
+                onChange={e => setRegisterForm({ ...registerForm, name: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={registerForm.email}
+                onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={registerForm.password}
+                onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
+              />
+              <button onClick={handleRegister} className="btn-primary">
+                Register
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -463,7 +446,6 @@ function App() {
           onClick={() => {
             setActiveTab('users');
             setSearchTerm('');
-            loadUsers();
           }}
         >
           <FaUserShield /> Users
@@ -776,43 +758,6 @@ function App() {
               ))}
             </div>
           )}
-        </div>
-      )}
-      
-      {/* Custom Notification */}
-      {notification.show && (
-        <div className={`custom-notification ${notification.type}`}>
-          {notification.type === 'success' && '✓ '}
-          {notification.type === 'error' && '✕ '}
-          {notification.type === 'info' && 'ℹ '}
-          {notification.message}
-        </div>
-      )}
-      
-      {/* Custom Confirm Dialog */}
-      {confirmDialog.show && (
-        <div className="custom-confirm-overlay">
-          <div className="custom-confirm-dialog">
-            <h3>Confirm Action</h3>
-            <p>{confirmDialog.message}</p>
-            <div className="confirm-buttons">
-              <button
-                onClick={() => {
-                  confirmDialog.onConfirm();
-                  setConfirmDialog({ ...confirmDialog, show: false });
-                }}
-                className="btn-danger"
-              >
-                Confirm
-              </button>
-              <button
-                onClick={() => setConfirmDialog({ ...confirmDialog, show: false })}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

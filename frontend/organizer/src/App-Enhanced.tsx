@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaCheck, FaFileExport, FaCalendar, FaUsers, FaCamera, FaTimes } from 'react-icons/fa';
-import QrScanner from 'react-qr-scanner';
+import { FaCheck, FaFileExport, FaCalendar, FaUsers } from 'react-icons/fa';
 import './App.css';
 
 const API_BASE_URL = 'http://localhost:3005';
@@ -21,7 +20,6 @@ interface Event {
 
 interface Ticket {
   id: number;
-  registrationId: number;
   uuid: string;
   qrCode: string;
   status: string;
@@ -42,13 +40,10 @@ function App() {
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [tickets, setTickets] = useState<Ticket[]>([]);
-  const [allEventTickets, setAllEventTickets] = useState<Map<number, Ticket[]>>(new Map());
   const [manualUUID, setManualUUID] = useState('');
   const [scanResult, setScanResult] = useState<any>(null);
   const [verifiedTickets, setVerifiedTickets] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(false);
-  const [showScanner, setShowScanner] = useState(false);
-  const [cameraError, setCameraError] = useState('');
 
   useEffect(() => {
     loadEvents();
@@ -58,22 +53,6 @@ function App() {
     try {
       const response = await api.get('/events');
       setEvents(response.data);
-      
-      // Load tickets for all events
-      const ticketsMap = new Map<number, Ticket[]>();
-      await Promise.all(
-        response.data.map(async (event: Event) => {
-          try {
-            const ticketResponse = await api.get(`/tickets/events/${event.id}`);
-            ticketsMap.set(event.id, ticketResponse.data);
-          } catch (error) {
-            console.error(`❌ [Organizer] Failed to load tickets for event ${event.id}:`, error);
-            ticketsMap.set(event.id, []);
-          }
-        })
-      );
-      setAllEventTickets(ticketsMap);
-      
       if (response.data.length > 0 && !selectedEvent) {
         loadEventDetails(response.data[0]);
       }
@@ -87,88 +66,23 @@ function App() {
       setSelectedEvent(event);
       setLoading(true);
       
-      // Clear previous data first
-      setRegistrations([]);
-      setTickets([]);
-      setVerifiedTickets(new Set());
-      
       const [regResponse, ticketResponse] = await Promise.all([
         api.get(`/registrations/events/${event.id}`),
         api.get(`/tickets/events/${event.id}`),
       ]);
       
-      console.log('Loaded tickets:', ticketResponse.data);
-      
       setRegistrations(regResponse.data);
       setTickets(ticketResponse.data);
       
-      // Update the all events tickets map
-      setAllEventTickets(prev => {
-        const newMap = new Map(prev);
-        newMap.set(event.id, ticketResponse.data);
-        return newMap;
-      });
-      
       // Track verified tickets
-      const verified = new Set<number>(
+      const verified = new Set(
         ticketResponse.data
           .filter((t: Ticket) => t.verified)
           .map((t: Ticket) => t.id)
       );
       setVerifiedTickets(verified);
-      
-      console.log('Verified tickets:', verified);
     } catch (error) {
-      console.error('❌ [Organizer] Failed to load event details and tickets:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const verifyTicket = async (uuid: string) => {
-    if (!uuid.trim()) {
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await api.post('/tickets/verify', { uuid: uuid.trim() });
-      setScanResult({ success: true, data: response.data });
-      
-      setManualUUID('');
-      
-      // Refresh ticket list to get updated verification status
-      if (selectedEvent) {
-        const ticketResponse = await api.get(`/tickets/events/${selectedEvent.id}`);
-        console.log('Refreshed tickets after verification:', ticketResponse.data);
-        setTickets(ticketResponse.data);
-        
-        // Update the all events tickets map
-        setAllEventTickets(prev => {
-          const newMap = new Map(prev);
-          newMap.set(selectedEvent.id, ticketResponse.data);
-          return newMap;
-        });
-        
-        // Update verified tickets set
-        const verified = new Set<number>(
-          ticketResponse.data
-            .filter((t: Ticket) => t.verified)
-            .map((t: Ticket) => t.id)
-        );
-        setVerifiedTickets(verified);
-        console.log('Updated verified set:', verified);
-      }
-
-      // Clear result after 3 seconds
-      setTimeout(() => setScanResult(null), 3000);
-    } catch (error: any) {
-      setScanResult({ 
-        success: false, 
-        message: error.response?.data?.message || 'Invalid ticket or already checked in' 
-      });
-      setTimeout(() => setScanResult(null), 3000);
-      setManualUUID('');
+      console.error('Failed to load event details', error);
     } finally {
       setLoading(false);
     }
@@ -179,32 +93,35 @@ function App() {
       alert('⚠️ Please enter a valid ticket UUID to proceed.');
       return;
     }
-    await verifyTicket(manualUUID);
-  };
 
-  const handleScan = (data: any) => {
-    if (data) {
-      const scannedText = typeof data === 'string' ? data : data.text;
-      if (scannedText) {
-        setShowScanner(false);
-        verifyTicket(scannedText);
+    try {
+      setLoading(true);
+      const response = await api.post('/tickets/verify', { uuid: manualUUID.trim() });
+      setScanResult({ success: true, data: response.data });
+      
+      // Add to verified set
+      setVerifiedTickets(prev => new Set<number>([...prev, response.data.id]));
+      
+      setManualUUID('');
+      
+      // Refresh ticket list
+      if (selectedEvent) {
+        const ticketResponse = await api.get(`/tickets/events/${selectedEvent.id}`);
+        setTickets(ticketResponse.data);
       }
+
+      // Clear result after 3 seconds
+      setTimeout(() => setScanResult(null), 3000);
+    } catch (error: any) {
+      setScanResult({ 
+        success: false, 
+        message: error.response?.data?.message || '❌ Verification failed: Invalid ticket or already checked in.' 
+      });
+      setTimeout(() => setScanResult(null), 3000);
+      setManualUUID('');
+    } finally {
+      setLoading(false);
     }
-  };
-
-  const handleScanError = (error: any) => {
-    console.error('📷 [Organizer] QR Scanner Error:', error);
-    setCameraError('📷 Camera access unavailable. Please grant camera permissions or use manual UUID entry.');
-  };
-
-  const openScanner = () => {
-    setCameraError('');
-    setShowScanner(true);
-  };
-
-  const closeScanner = () => {
-    setShowScanner(false);
-    setCameraError('');
   };
 
   const exportAttendees = () => {
@@ -215,8 +132,8 @@ function App() {
 
     const csv = [
       ['Name', 'Email', 'Registration Time', 'Status', 'Checked In'],
-      ...registrations.map((reg) => {
-        const ticket = tickets.find(t => t.registrationId === reg.id);
+      ...registrations.map((reg, idx) => {
+        const ticket = tickets.find(t => t.id === idx + 1);
         return [
           reg.userName,
           reg.userEmail,
@@ -246,13 +163,8 @@ function App() {
   };
 
   const isTicketVerified = (registrationId: number) => {
-    const ticket = tickets.find(t => t.registrationId === registrationId);
+    const ticket = tickets.find(t => t.id === registrationId);
     return ticket?.verified || false;
-  };
-
-  const getEventCheckedInCount = (eventId: number) => {
-    const eventTickets = allEventTickets.get(eventId) || [];
-    return eventTickets.filter(t => t.verified).length;
   };
 
   return (
@@ -284,7 +196,7 @@ function App() {
                   </p>
                   <div className="event-stats">
                     <span className="checked-count">
-                      {getEventCheckedInCount(event.id)}
+                      {selectedEvent?.id === event.id ? getCheckedInCount() : 0}
                     </span>
                     <span className="separator">/</span>
                     <span className="total-count">{event.registrationCount}</span>
@@ -320,59 +232,13 @@ function App() {
                     disabled={loading}
                   />
                   <button 
-                    onClick={openScanner} 
-                    className="btn-camera"
-                    disabled={loading}
-                  >
-                    <FaCamera /> Scan QR
-                  </button>
-                  <button 
                     onClick={handleManualVerification} 
                     className="btn-verify"
                     disabled={loading || !manualUUID.trim()}
                   >
-                    <FaCheck /> Verify
+                    <FaCheck /> Verify Ticket
                   </button>
                 </div>
-
-                {/* QR Scanner Modal */}
-                {showScanner && (
-                  <div className="scanner-modal">
-                    <div className="scanner-modal-content">
-                      <div className="scanner-modal-header">
-                        <h3>Scan QR Code</h3>
-                        <button onClick={closeScanner} className="btn-close-scanner">
-                          <FaTimes />
-                        </button>
-                      </div>
-                      <div className="scanner-modal-body">
-                        {cameraError ? (
-                          <div className="camera-error">
-                            <p>{cameraError}</p>
-                            <button onClick={closeScanner} className="btn-secondary">
-                              Close
-                            </button>
-                          </div>
-                        ) : (
-                          <>
-                            <QrScanner
-                              delay={300}
-                              onError={handleScanError}
-                              onScan={handleScan}
-                              style={{ width: '100%' }}
-                              constraints={{
-                                video: { facingMode: 'environment' }
-                              }}
-                            />
-                            <p className="scanner-hint">
-                              Position the QR code within the frame
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {scanResult && (
                   <div className={`scan-result ${scanResult.success ? 'success' : 'error'}`}>
@@ -438,8 +304,9 @@ function App() {
                   </div>
                 ) : (
                   <div className="attendees-list">
-                    {registrations.map((reg) => {
-                      const ticket = tickets.find(t => t.registrationId === reg.id);
+                    {registrations.map((reg, idx) => {
+                      const ticket = tickets[idx];
+                      const verified = ticket?.verified || false;
                       
                       return (
                         <div key={reg.id} className="attendee-card">
@@ -451,16 +318,10 @@ function App() {
                             </p>
                           </div>
                           <div className="attendee-status">
-                            {ticket ? (
-                              ticket.verified ? (
-                                <span className="status-badge checked">
-                                  ✓ Checked In
-                                </span>
-                              ) : (
-                                <span className="status-badge registered">
-                                  ✓ Registered
-                                </span>
-                              )
+                            {verified ? (
+                              <span className="status-badge checked">
+                                ✓ Checked In
+                              </span>
                             ) : (
                               <span className="status-badge pending">
                                 ⏳ Pending

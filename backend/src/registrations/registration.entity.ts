@@ -25,6 +25,6 @@ export class Registration {
   @CreateDateColumn()
   registeredAt: Date;
 
-  @ManyToOne(() => Event, event => event.registrations)
+  @ManyToOne(() => Event, event => event.registrations, { onDelete: 'CASCADE' })
   event: Event;
 }

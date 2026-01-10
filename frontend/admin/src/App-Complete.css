@@ -11,7 +11,7 @@ body {
     sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background: linear-gradient(135deg, #B39B9B 50% 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   min-height: 100vh;
 }
 
@@ -35,19 +35,9 @@ body {
 
 .auth-box h1 {
   text-align: center;
-  color: #5B4B5F;
-  margin-bottom: 10px;
-  font-size: 2rem;
-}
-
-.admin-notice {
-  text-align: center;
-  color: #666;
-  font-size: 14px;
+  color: #667eea;
   margin-bottom: 30px;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 2rem;
 }
 
 .auth-tabs {
@@ -66,13 +56,10 @@ body {
   font-size: 16px;
   font-weight: 600;
   transition: all 0.3s;
-  text-align: center !important;
-  display: block !important;
-  width: 100%;
 }
 
 .auth-tabs button.active {
-  background: linear-gradient(135deg, #5B4B5F 0% 100%);
+  background: #667eea;
   color: white;
 }
 
@@ -105,128 +92,6 @@ body {
   color: #666;
   font-size: 14px;
   margin-top: 10px;
-  padding: 10px;
-  background: #f8f9fa;
-  border-radius: 6px;
-}
-
-.auth-warning {
-  text-align: center;
-  color: #856404;
-  font-size: 13px;
-  margin-top: 15px;
-  padding: 12px;
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 6px;
-  font-weight: 500;
-}
-
-.error-message {
-  background: #f8d7da;
-  border: 1px solid #f5c6cb;
-  color: #721c24;
-  padding: 12px 15px;
-  border-radius: 6px;
-  margin-bottom: 20px;
-  text-align: center;
-  animation: shake 0.5s;
-}
-
-@keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-  20%, 40%, 60%, 80% { transform: translateX(5px); }
-}
-
-.error-message strong {
-  display: block;
-  font-size: 14px;
-}
-
-/* Input Group with Error Handling */
-.input-group {
-  margin-bottom: 20px;
-}
-
-.input-group input {
-  width: 100%;
-  padding: 15px;
-  border: 2px solid #e0e0e0;
-  border-radius: 10px;
-  font-size: 16px;
-  transition: all 0.3s;
-}
-
-.input-group input:focus {
-  outline: none;
-  border-color: #5B4B5F;
-  box-shadow: 0 0 0 3px rgba(91, 75, 95, 0.1);
-}
-
-.input-group input.input-error {
-  border-color: #dc3545;
-  background: #fff5f5;
-}
-
-.input-group input.input-error:focus {
-  border-color: #dc3545;
-  box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1);
-}
-
-/* Field-level Error Messages */
-.field-error {
-  display: block;
-  color: #dc3545;
-  font-size: 13px;
-  margin-top: 6px;
-  margin-left: 4px;
-  font-weight: 500;
-  animation: slideDown 0.3s ease-out;
-}
-
-/* General Error/Success Messages */
-.error-message-general {
-  background: #fee;
-  border: 1px solid #fcc;
-  border-left: 4px solid #dc3545;
-  color: #c33;
-  padding: 12px 15px;
-  border-radius: 8px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  line-height: 1.5;
-  animation: slideDown 0.3s ease-out;
-}
-
-.success-message {
-  background: #d4edda;
-  border: 1px solid #c3e6cb;
-  border-left: 4px solid #28a745;
-  color: #155724;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Disabled state for inputs and buttons */
-.auth-form input:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
-  opacity: 0.6;
-}
-
-.auth-form button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
 }
 
 /* Main Container */
@@ -249,7 +114,7 @@ body {
 }
 
 .admin-header h1 {
-  color: #5B4B5F;
+  color: #667eea;
   font-size: 1.8rem;
 }
 
@@ -297,7 +162,7 @@ body {
 }
 
 .tabs button.active {
-  background: linear-gradient(135deg, #5B4B5F 0% 100%);
+  background: #667eea;
   color: white;
 }
 
@@ -320,37 +185,29 @@ body {
 
 .search-input:focus {
   outline: none;
-  border-color: #5B4B5F;
+  border-color: #667eea;
 }
 
 /* Buttons */
 .btn-primary {
   padding: 12px 24px;
-  background: linear-gradient(135deg, #5B4B5F 0% 100%);
+  background: #667eea;
   color: white;
   border: none;
   border-radius: 10px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 600;
-  transition: all 0.3s;
-  width: 100%;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  transition: all 0.3s;
 }
 
 .btn-primary:hover {
-  background: linear-gradient(135deg, #4a3a4e 0%, #a28a8a 100%);
+  background: #5568d3;
   transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(91, 75, 95, 0.3);
-}
-
-.btn-primary:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  transform: none;
+  box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
 }
 
 .btn-secondary {
@@ -442,7 +299,7 @@ body {
 .form-container textarea:focus,
 .form-container select:focus {
   outline: none;
-  border-color: #5B4B5F;
+  border-color: #667eea;
 }
 
 .form-container textarea {
@@ -487,12 +344,12 @@ body {
 }
 
 .event-card:hover {
-  border-color: #5B4B5F;
+  border-color: #667eea;
   transform: translateX(5px);
 }
 
 .event-card.selected {
-  border-color: #5B4B5F;
+  border-color: #667eea;
   background: #f8f9ff;
 }
 
@@ -525,7 +382,7 @@ body {
   align-items: center;
   gap: 5px;
   font-weight: 600;
-  color: #e0e0e0;
+  color: #667eea;
 }
 
 .status {
@@ -546,7 +403,7 @@ body {
 }
 
 .event-details h2 {
-  color: #5B4B5F;
+  color: #667eea;
   margin-bottom: 20px;
 }
 
@@ -614,7 +471,7 @@ body {
 }
 
 .registrations-table tr:hover {
-  background: #faf8f9;
+  background: #f8f9ff;
 }
 
 .badge {
@@ -661,7 +518,7 @@ body {
 }
 
 .users-table tr:hover {
-  background: #faf8f9;
+  background: #f8f9ff;
 }
 
 .role-select {
@@ -674,7 +531,7 @@ body {
 
 .role-select:focus {
   outline: none;
-  border-color: #5B4B5F;
+  border-color: #667eea;
 }
 
 /* Tickets Container */
@@ -705,9 +562,9 @@ body {
 }
 
 .ticket-card:hover {
-  border-color: #5B4B5F;
+  border-color: #667eea;
   transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(91, 75, 95, 0.2);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
 }
 
 .ticket-card h3 {
@@ -814,12 +671,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(135deg, #5B4B5F 0% 100%);
+  background: #667eea;
   border-radius: 10px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(135deg, #4a3a4e 0% 100%);
+  background: #5568d3;
 }
 
 /* Loading States */
@@ -840,112 +697,4 @@ body {
   font-size: 64px;
   margin-bottom: 20px;
   opacity: 0.3;
-}
-
-/* Custom Notification */
-.custom-notification {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  padding: 16px 24px;
-  border-radius: 12px;
-  color: white;
-  font-weight: 500;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-  z-index: 10000;
-  animation: slideInRight 0.3s ease-out;
-  max-width: 400px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.custom-notification.success {
-  background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-}
-
-.custom-notification.error {
-  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
-}
-
-.custom-notification.info {
-  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
-}
-
-@keyframes slideInRight {
-  from {
-    transform: translateX(400px);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
-
-/* Custom Confirm Dialog */
-.custom-confirm-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  animation: fadeIn 0.2s ease-out;
-}
-
-.custom-confirm-dialog {
-  background: white;
-  border-radius: 16px;
-  padding: 32px;
-  max-width: 450px;
-  width: 90%;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-  animation: scaleIn 0.2s ease-out;
-}
-
-.custom-confirm-dialog h3 {
-  color: #5B4B5F;
-  margin-bottom: 16px;
-  font-size: 1.5rem;
-}
-
-.custom-confirm-dialog p {
-  color: #666;
-  margin-bottom: 24px;
-  line-height: 1.6;
-}
-
-.confirm-buttons {
-  display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-}
-
-.confirm-buttons button {
-  min-width: 100px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0.9);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
 }

@@ -30,6 +30,6 @@ export class Ticket {
   @CreateDateColumn()
   createdAt: Date;
 
-  @ManyToOne(() => Event, event => event.tickets)
+  @ManyToOne(() => Event, event => event.tickets, { onDelete: 'CASCADE' })
   event: Event;
 }

@@ -80,10 +80,6 @@ function App() {
   const [showLogin, setShowLogin] = useState(true);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ email: '', password: '', name: '' });
-  const [loginErrors, setLoginErrors] = useState({ email: '', password: '', general: '' });
-  const [registerErrors, setRegisterErrors] = useState({ name: '', email: '', password: '', general: '' });
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
-  const [isRegistering, setIsRegistering] = useState(false);
 
   // Main app state
   const [allEvents, setAllEvents] = useState<Event[]>([]);
@@ -99,63 +95,25 @@ function App() {
   });
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [confirmDialogData, setConfirmDialogData] = useState<{
-    title: string;
-    message: string;
-    onConfirm: () => void;
-  } | null>(null);
 
   // Check authentication on mount
   useEffect(() => {
     const token = localStorage.getItem('attendeeToken');
     const userStr = localStorage.getItem('attendeeUser');
     if (token && userStr) {
-      const user = JSON.parse(userStr);
       setIsAuthenticated(true);
-      setCurrentUser(user);
-      loadInitialData(user);
+      setCurrentUser(JSON.parse(userStr));
+      loadInitialData();
     }
   }, []);
 
-  const loadInitialData = async (user: User) => {
-    await loadEvents();
-    await loadMyRegistrations(user);
+  const loadInitialData = async () => {
+    await Promise.all([loadEvents(), loadMyRegistrations()]);
   };
 
   // Authentication functions
   const handleLogin = async () => {
-    // Clear previous errors
-    setLoginErrors({ email: '', password: '', general: '' });
-    
-    let hasError = false;
-    const newErrors = { email: '', password: '', general: '' };
-
-    // Email validation
-    if (!loginForm.email) {
-      newErrors.email = 'Email address is required';
-      hasError = true;
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(loginForm.email)) {
-        newErrors.email = 'Please provide a valid email address';
-        hasError = true;
-      }
-    }
-
-    // Password validation
-    if (!loginForm.password) {
-      newErrors.password = 'Password is required';
-      hasError = true;
-    }
-
-    if (hasError) {
-      setLoginErrors(newErrors);
-      return;
-    }
-
     try {
-      setIsLoggingIn(true);
       const response = await api.post('/auth/login', loginForm);
       const { access_token, user } = response.data;
       
@@ -165,92 +123,21 @@ function App() {
       setIsAuthenticated(true);
       setCurrentUser(user);
       setLoginForm({ email: '', password: '' });
-      setLoginErrors({ email: '', password: '', general: '' });
       
-      await loadInitialData(user);
+      await loadInitialData();
     } catch (error: any) {
-      if (error.response?.status === 401) {
-        newErrors.general = '❌ Invalid credentials. Please check your email and password.';
-      } else if (error.response?.status === 404) {
-        newErrors.general = '🔍 Account not found. Please create an account first.';
-      } else if (error.response?.data?.message) {
-        newErrors.general = error.response.data.message;
-      } else if (error.message === 'Network Error') {
-        newErrors.general = '🌐 Unable to connect to the server. Please verify the backend service is running.';
-      } else {
-        newErrors.general = '⚠️ Login failed. Please try again later.';
-      }
-      setLoginErrors(newErrors);
-    } finally {
-      setIsLoggingIn(false);
+      alert(error.response?.data?.message || '❌ Authentication failed. Please verify your credentials.');
     }
   };
 
   const handleRegister = async () => {
-    // Clear previous errors
-    setRegisterErrors({ name: '', email: '', password: '', general: '' });
-    
-    let hasError = false;
-    const newErrors = { name: '', email: '', password: '', general: '' };
-
-    // Name validation
-    if (!registerForm.name) {
-      newErrors.name = 'Full name is required';
-      hasError = true;
-    } else if (registerForm.name.trim().length < 2) {
-      newErrors.name = 'Name must contain at least 2 characters';
-      hasError = true;
-    }
-
-    // Email validation
-    if (!registerForm.email) {
-      newErrors.email = 'Email address is required';
-      hasError = true;
-    } else {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(registerForm.email)) {
-        newErrors.email = 'Please provide a valid email address';
-        hasError = true;
-      }
-    }
-
-    // Password validation
-    if (!registerForm.password) {
-      newErrors.password = 'Password is required';
-      hasError = true;
-    } else if (registerForm.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      hasError = true;
-    }
-
-    if (hasError) {
-      setRegisterErrors(newErrors);
-      return;
-    }
-
     try {
-      setIsRegistering(true);
       await api.post('/auth/register', registerForm);
-      
-      // Success - switch to login
+      alert('Registration successful! Please login.');
       setShowLogin(true);
       setRegisterForm({ email: '', password: '', name: '' });
-      setRegisterErrors({ name: '', email: '', password: '', general: '' });
-      setLoginErrors({ email: '', password: '', general: '✅ Registration successful! Please login with your credentials.' });
     } catch (error: any) {
-      if (error.response?.status === 409 || error.response?.data?.message?.includes('already exists')) {
-        newErrors.email = '📧 This email address is already registered';
-        newErrors.general = '💡 Please sign in with your existing account or use a different email.';
-      } else if (error.response?.data?.message) {
-        newErrors.general = error.response.data.message;
-      } else if (error.message === 'Network Error') {
-        newErrors.general = '🌐 Unable to connect to the server. Please verify the backend service is running.';
-      } else {
-        newErrors.general = '⚠️ Registration failed. Please try again later.';
-      }
-      setRegisterErrors(newErrors);
-    } finally {
-      setIsRegistering(false);
+      alert(error.response?.data?.message || '❌ Registration failed. Please try again later.');
     }
   };
 
@@ -271,17 +158,16 @@ function App() {
       const response = await api.get('/events');
       setAllEvents(response.data);
     } catch (error) {
-      console.error('❌ [Attendee] Failed to load events:', error);
+      console.error('Failed to load events', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMyRegistrations = async (user?: User) => {
-    const userToUse = user || currentUser;
-    if (!userToUse) return;
+  const loadMyRegistrations = async () => {
+    if (!currentUser) return;
     try {
-      const response = await api.get(`/registrations/users/${userToUse.id}`);
+      const response = await api.get(`/registrations/users/${currentUser.id}`);
       setMyRegistrations(response.data);
 
       // Load tickets for each registration
@@ -296,7 +182,7 @@ function App() {
       }
       setMyTickets(ticketMap);
     } catch (error) {
-      console.error('❌ [Attendee] Failed to load user registrations:', error);
+      console.error('Failed to load registrations', error);
     }
   };
 
@@ -362,22 +248,18 @@ function App() {
   };
 
   const handleCancelRegistration = async (registrationId: number, eventTitle: string) => {
-    setConfirmDialogData({
-      title: 'Cancel Registration',
-      message: `Are you sure you want to cancel your registration for "${eventTitle}"?`,
-      onConfirm: async () => {
-        setShowConfirmDialog(false);
-        try {
-          await api.delete(`/registrations/${registrationId}`);
-          alert('✅ Your registration has been cancelled successfully.');
-          await loadEvents();
-          await loadMyRegistrations();
-        } catch (error: any) {
-          alert(error.response?.data?.message || '❌ Unable to cancel registration. Please try again.');
-        }
-      }
-    });
-    setShowConfirmDialog(true);
+    if (!window.confirm(`Are you sure you want to cancel your registration for "${eventTitle}"?`)) {
+      return;
+    }
+
+    try {
+      await api.delete(`/registrations/${registrationId}`);
+      alert('✅ Your registration has been cancelled successfully.');
+      await loadEvents();
+      await loadMyRegistrations();
+    } catch (error: any) {
+      alert(error.response?.data?.message || '❌ Unable to cancel registration. Please try again.');
+    }
   };
 
   const isRegisteredForEvent = (eventId: number) => {
@@ -426,55 +308,20 @@ function App() {
           {showLogin ? (
             <div className="auth-form">
               <h2>Login</h2>
-              
-              {loginErrors.general && (
-                <div className={`error-message-general ${loginErrors.general.startsWith('✅') ? 'success-message' : ''}`}>
-                  {loginErrors.general}
-                </div>
-              )}
-              
-              <div className="input-group">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={loginForm.email}
-                  onChange={e => {
-                    setLoginForm({ ...loginForm, email: e.target.value });
-                    setLoginErrors({ ...loginErrors, email: '', general: '' });
-                  }}
-                  onKeyPress={e => e.key === 'Enter' && handleLogin()}
-                  disabled={isLoggingIn}
-                  className={loginErrors.email ? 'input-error' : ''}
-                />
-                {loginErrors.email && (
-                  <span className="field-error">{loginErrors.email}</span>
-                )}
-              </div>
-
-              <div className="input-group">
-                <input
-                  type="password"
-                  placeholder="Password"
-                  value={loginForm.password}
-                  onChange={e => {
-                    setLoginForm({ ...loginForm, password: e.target.value });
-                    setLoginErrors({ ...loginErrors, password: '', general: '' });
-                  }}
-                  onKeyPress={e => e.key === 'Enter' && handleLogin()}
-                  disabled={isLoggingIn}
-                  className={loginErrors.password ? 'input-error' : ''}
-                />
-                {loginErrors.password && (
-                  <span className="field-error">{loginErrors.password}</span>
-                )}
-              </div>
-
-              <button 
-                onClick={handleLogin} 
-                className="btn-primary"
-                disabled={isLoggingIn}
-              >
-                {isLoggingIn ? 'Logging in...' : 'Login'}
+              <input
+                type="email"
+                placeholder="Email"
+                value={loginForm.email}
+                onChange={e => setLoginForm({ ...loginForm, email: e.target.value })}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={loginForm.password}
+                onChange={e => setLoginForm({ ...loginForm, password: e.target.value })}
+              />
+              <button onClick={handleLogin} className="btn-primary">
+                Login
               </button>
               <p className="auth-hint">
                 Don't have an account? Click Register above.
@@ -483,75 +330,27 @@ function App() {
           ) : (
             <div className="auth-form">
               <h2>Register</h2>
-              
-              {registerErrors.general && (
-                <div className="error-message-general">
-                  {registerErrors.general}
-                </div>
-              )}
-              
-              <div className="input-group">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  value={registerForm.name}
-                  onChange={e => {
-                    setRegisterForm({ ...registerForm, name: e.target.value });
-                    setRegisterErrors({ ...registerErrors, name: '', general: '' });
-                  }}
-                  disabled={isRegistering}
-                  className={registerErrors.name ? 'input-error' : ''}
-                />
-                {registerErrors.name && (
-                  <span className="field-error">{registerErrors.name}</span>
-                )}
-              </div>
-
-              <div className="input-group">
-                <input
-                  type="email"
-                  placeholder="Email"
-                  value={registerForm.email}
-                  onChange={e => {
-                    setRegisterForm({ ...registerForm, email: e.target.value });
-                    setRegisterErrors({ ...registerErrors, email: '', general: '' });
-                  }}
-                  disabled={isRegistering}
-                  className={registerErrors.email ? 'input-error' : ''}
-                />
-                {registerErrors.email && (
-                  <span className="field-error">{registerErrors.email}</span>
-                )}
-              </div>
-
-              <div className="input-group">
-                <input
-                  type="password"
-                  placeholder="Password (min 6 characters)"
-                  value={registerForm.password}
-                  onChange={e => {
-                    setRegisterForm({ ...registerForm, password: e.target.value });
-                    setRegisterErrors({ ...registerErrors, password: '', general: '' });
-                  }}
-                  onKeyPress={e => e.key === 'Enter' && handleRegister()}
-                  disabled={isRegistering}
-                  className={registerErrors.password ? 'input-error' : ''}
-                />
-                {registerErrors.password && (
-                  <span className="field-error">{registerErrors.password}</span>
-                )}
-              </div>
-
-              <button 
-                onClick={handleRegister} 
-                className="btn-primary"
-                disabled={isRegistering}
-              >
-                {isRegistering ? 'Creating Account...' : 'Register'}
+              <input
+                type="text"
+                placeholder="Full Name"
+                value={registerForm.name}
+                onChange={e => setRegisterForm({ ...registerForm, name: e.target.value })}
+              />
+              <input
+                type="email"
+                placeholder="Email"
+                value={registerForm.email}
+                onChange={e => setRegisterForm({ ...registerForm, email: e.target.value })}
+              />
+              <input
+                type="password"
+                placeholder="Password"
+                value={registerForm.password}
+                onChange={e => setRegisterForm({ ...registerForm, password: e.target.value })}
+              />
+              <button onClick={handleRegister} className="btn-primary">
+                Register
               </button>
-              <p className="auth-hint">
-                Already have an account? Click Login above.
-              </p>
             </div>
           )}
         </div>
@@ -721,23 +520,14 @@ function App() {
                               alt="QR Code"
                               className="qr-code"
                             />
-                            <p className="ticket-uuid" title={ticket.uuid}>{ticket.uuid.substring(0, 12)}...</p>
+                            <p className="ticket-uuid">{ticket.uuid.substring(0, 12)}...</p>
                           </div>
                           <div className="ticket-actions">
                             <button
                               className="btn-download"
-                              onClick={() => {
-                                navigator.clipboard.writeText(ticket.uuid);
-                                alert('UUID copied to clipboard!\n\n' + ticket.uuid);
-                              }}
-                            >
-                              📋 Copy UUID
-                            </button>
-                            <button
-                              className="btn-download"
                               onClick={() => downloadTicket(ticket)}
                             >
-                              <FaDownload /> Download QR
+                              <FaDownload /> Download
                             </button>
                             {!ticket.verified && (
                               <button
@@ -820,36 +610,6 @@ function App() {
                 disabled={loading}
               >
                 {loading ? 'Registering...' : 'Confirm Registration'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Dialog */}
-      {showConfirmDialog && confirmDialogData && (
-        <div className="modal-overlay" onClick={() => setShowConfirmDialog(false)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px' }}>
-            <div className="modal-header">
-              <h2>{confirmDialogData.title}</h2>
-              <button className="modal-close" onClick={() => setShowConfirmDialog(false)}>
-                <FaTimes />
-              </button>
-            </div>
-            <div className="modal-body">
-              <p style={{ fontSize: '16px', color: '#666', lineHeight: '1.6' }}>
-                {confirmDialogData.message}
-              </p>
-            </div>
-            <div className="modal-footer">
-              <button className="btn-secondary" onClick={() => setShowConfirmDialog(false)}>
-                Cancel
-              </button>
-              <button
-                className="btn-cancel"
-                onClick={confirmDialogData.onConfirm}
-              >
-                Yes, Cancel Registration
               </button>
             </div>
           </div>
