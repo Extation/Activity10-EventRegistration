@@ -73,6 +73,12 @@ interface RegistrationFormData {
   company: string;
 }
 
+interface Toast {
+  id: number;
+  message: string;
+  type: 'success' | 'error' | 'info' | 'warning';
+}
+
 function App() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -105,6 +111,16 @@ function App() {
     message: string;
     onConfirm: () => void;
   } | null>(null);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+
+  // Toast notification function
+  const showToast = (message: string, type: 'success' | 'error' | 'info' | 'warning' = 'info') => {
+    const id = Date.now();
+    setToasts(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(toast => toast.id !== id));
+    }, 5000);
+  };
 
   // Check authentication on mount
   useEffect(() => {
@@ -321,14 +337,14 @@ function App() {
     if (!selectedEvent || !currentUser) return;
 
     if (!registrationFormData.name || !registrationFormData.email) {
-      alert('📝 Please provide both your name and email address to complete registration.');
+      showToast('📝 Please provide both your name and email address to complete registration.', 'warning');
       return;
     }
 
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(registrationFormData.email)) {
-      alert('✉️ Please provide a valid email address.');
+      showToast('✉️ Please provide a valid email address.', 'warning');
       return;
     }
 
@@ -349,13 +365,13 @@ function App() {
         registrationId: response.data.id,
       });
 
-      alert(`🎉 Success! You've been registered for ${selectedEvent.title}. Check your tickets!`);
+      showToast(`🎉 Success! You've been registered for ${selectedEvent.title}. Check your tickets!`, 'success');
       closeRegistrationModal();
       await loadEvents();
       await loadMyRegistrations();
       setActiveTab('mytickets');
     } catch (error: any) {
-      alert(error.response?.data?.message || '❌ Unable to complete registration. Please try again.');
+      showToast(error.response?.data?.message || '❌ Unable to complete registration. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -369,11 +385,11 @@ function App() {
         setShowConfirmDialog(false);
         try {
           await api.delete(`/registrations/${registrationId}`);
-          alert('✅ Your registration has been cancelled successfully.');
+          showToast('✅ Your registration has been cancelled successfully.', 'success');
           await loadEvents();
           await loadMyRegistrations();
         } catch (error: any) {
-          alert(error.response?.data?.message || '❌ Unable to cancel registration. Please try again.');
+          showToast(error.response?.data?.message || '❌ Unable to cancel registration. Please try again.', 'error');
         }
       }
     });
@@ -855,6 +871,29 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Toast Notifications */}
+      <div className="toast-container">
+        {toasts.map(toast => (
+          <div key={toast.id} className={`toast toast-${toast.type}`}>
+            <div className="toast-content">
+              <span className="toast-icon">
+                {toast.type === 'success' && '✅'}
+                {toast.type === 'error' && '❌'}
+                {toast.type === 'warning' && '⚠️'}
+                {toast.type === 'info' && 'ℹ️'}
+              </span>
+              <span className="toast-message">{toast.message}</span>
+            </div>
+            <button 
+              className="toast-close" 
+              onClick={() => setToasts(prev => prev.filter(t => t.id !== toast.id))}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
